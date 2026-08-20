@@ -12,7 +12,7 @@ See the accompanying paper for the method and its validation.
 ## Install
 
 ```bash
-pip install -e .
+pip install git+https://github.com/punpiti/asem-refine.git
 ```
 
 ## Usage
