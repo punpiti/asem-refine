@@ -37,6 +37,18 @@ Run `asem-refine --help` for the full option list, including the
 hybrid/recursive toggles and EM hyperparameters (`--tau`, `--w`,
 `--max-iterations`).
 
+**Reproducing the paper's headline ASEM-Hybrid numbers**: the benchmark
+grid reported in the paper ran ASEM-Hybrid on top of ASEM *without*
+recursive partial alignment. `--recursive` defaults to on here (it never
+measured worse and helps on real, noisy reads), so add `--no-recursive`
+to match that exact configuration:
+
+```bash
+asem-refine --reference ref.fasta --reads reads.fastq --no-recursive -o theta.fasta
+```
+
+Hybrid+recursive together has not been separately benchmarked.
+
 ### NOVOPlasty config.txt compatibility
 
 `-c config.txt` reads the same field names NOVOPlasty's config.txt uses

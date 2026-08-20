@@ -158,22 +158,29 @@ def anchor_contigs(
     >= tau * MATCH_SCORE * len(contig)). Empirically, contigs assembled
     from an unplaced-read pool anchor to theta at ~73-80% identity over
     their *aligned span* -- exactly the divergence level that made the
-    underlying 150bp reads fail the read-level threshold (tau=0.5 is
-    roughly an 80%-identity cutoff at that length) in the first place, and
-    parasail's local alignment often can't sustain that rate across a
-    contig's full length, so it returns the best-scoring *sub*-window
-    rather than an end-to-end match. Judging that against a bar sized for
-    the whole contig punishes exactly the long, high-value contigs this
-    step exists to anchor.
+    underlying 150bp reads fail the read-level threshold in the first
+    place -- and parasail's local alignment often can't sustain that rate
+    across a contig's full length, so it returns the best-scoring
+    *sub*-window rather than an end-to-end match. Judging that against a
+    bar sized for the whole contig punishes exactly the long, high-value
+    contigs this step exists to anchor.
 
-    What actually changes with length is statistical confidence, not
-    identity: a coincidental ~75%-identity local match spanning even a few
-    hundred bp of otherwise-unrelated sequence is effectively impossible,
-    while it happens often at 150bp. So this checks the aligned window's
-    own identity against a lower, length-appropriate bar (contig_tau,
-    default well below the read-level tau) but requires that window to be
-    at least `min_anchor_len` -- comfortably longer than one read -- as
-    the actual safeguard against spurious short matches.
+    contig_tau=0.25 is a score-normalized threshold, not identity
+    directly: with this scoring scheme (match=+2, mismatch=-3, no gaps),
+    score >= contig_tau * MATCH_SCORE * L works out to an identity floor
+    of exactly 70% (solve 2p - 3(1-p) >= 0.5 for p). min_anchor_len=300
+    is an additional, independent floor on top of that -- NOT because
+    70%-identity matches are common at 150bp against random sequence
+    (they aren't: a purely-random-DNA negative control produced 0 false
+    anchors in 2000 trials at each of the 150bp and 300bp length floors,
+    so contig_tau=0.25 alone already rejects unrelated sequence reliably
+    against that null model). The 300bp floor is a margin against a
+    different, untested risk: real non-homologous genomic sequence is not
+    perfectly uniform-random (GC bias, low-complexity/repetitive
+    stretches), which could in principle score better against theta than
+    the idealized random-DNA control above. This margin has not been
+    validated against structured/repeat-containing negative controls --
+    an open gap, not a confirmed safety property.
     """
     anchored = []
     for contig in contigs:
@@ -196,10 +203,13 @@ def has_uncovered_gap(depths: np.ndarray, min_len: int) -> bool:
     attempting when theta actually has a hole big enough for a contig to
     plausibly fill (anchor_contigs requires an aligned span >= min_anchor_len
     anyway, so a hole shorter than that could never be usefully filled).
-    Skipping the gate on iterations with no such hole is not just an
-    optimization -- it makes the "only intervenes where genuinely needed"
-    claim (Section~sec:hybrid-discussion) true of the implementation, not
-    just the outcome."""
+    This is a per-iteration cost-saving gate only, not a positional one:
+    it controls whether the expensive assembly/anchoring step runs *this
+    round* at all, not which theta positions an anchored contig is allowed
+    to vote at. A contig's own alignment can (and empirically does) extend
+    beyond the gap into positions ordinary reads already cover, at a small
+    measured recall cost on some jobs -- don't describe this gate as
+    restricting contig votes to gap positions; it doesn't."""
     if min_len <= 0:
         return True
     zero = depths == 0
