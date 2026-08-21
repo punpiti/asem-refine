@@ -81,6 +81,11 @@ def build_parser() -> argparse.ArgumentParser:
     algo.add_argument("--contig-tau", type=float, default=0.25, help="Hybrid: contig-anchor identity threshold (default: 0.25).")
     algo.add_argument("--min-anchor-len", type=int, default=300, help="Hybrid: minimum aligned contig-anchor length (default: 300).")
     algo.add_argument("--min-overlap", type=int, default=20, help="Hybrid: minimum read-read overlap to merge (default: 20).")
+    algo.add_argument(
+        "--boundary-flank", type=int, default=150,
+        help="Hybrid: also recruit placed reads within this many bases of a gap's edge into the "
+             "overlap-assembly pool (default: 150). Pass 0 to reproduce the earlier unplaced-reads-only variant.",
+    )
     algo.add_argument("-t", "--threads", type=int, default=1, help="Parallel worker processes (default: 1).")
     algo.add_argument("-q", "--quiet", action="store_true", help="Suppress per-iteration progress output.")
 
@@ -144,6 +149,7 @@ def main(argv: list[str] | None = None) -> int:
             align_read_fn=align_read_fn,
             contig_tau=args.contig_tau,
             min_anchor_len=args.min_anchor_len,
+            boundary_flank=args.boundary_flank,
             w=args.w,
             max_iterations=args.max_iterations,
             min_overlap=args.min_overlap,

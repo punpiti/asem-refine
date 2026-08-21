@@ -49,6 +49,13 @@ asem-refine --reference ref.fasta --reads reads.fastq --no-recursive -o theta.fa
 
 Hybrid+recursive together has not been separately benchmarked.
 
+Hybrid also recruits placed reads within `--boundary-flank` bases (default:
+150) of a gap's edge into the overlap-assembly pool, not just reads that
+failed placement outright -- this boundary-recruited variant is the one
+reported in the paper. An earlier unplaced-reads-only variant (assembly
+pool = only reads that failed placement) is still available for comparison
+via `--boundary-flank 0`.
+
 ### NOVOPlasty config.txt compatibility
 
 `-c config.txt` reads the same field names NOVOPlasty's config.txt uses
