@@ -56,6 +56,19 @@ reported in the paper. An earlier unplaced-reads-only variant (assembly
 pool = only reads that failed placement) is still available for comparison
 via `--boundary-flank 0`.
 
+**Raw FASTQ orientation**: unlike this project's own simulated benchmark
+reads (always forward-strand) or a pre-oriented BAM `SEQ` field, real raw
+FASTQ mixes reads from both strands. By default every read alignment also
+tries the read's reverse complement and keeps whichever orientation scores
+higher (`--try-reverse-complement`, on by default; pass
+`--no-reverse-complement` to skip the extra alignment attempt if your reads
+are already known to be correctly oriented). This does not extend to the
+Hybrid gap-filling step's own read-read overlap assembly: two reads from
+the same locus on opposite strands will not merge there, so a gap spanned
+only by mixed-orientation reads may assemble into smaller, more fragmented
+contigs than a same-orientation read pool would -- an open gap, not
+something this release fixes.
+
 ### NOVOPlasty config.txt compatibility
 
 `-c config.txt` reads the same field names NOVOPlasty's config.txt uses

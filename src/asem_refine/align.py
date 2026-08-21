@@ -26,9 +26,14 @@ class LocalAlignment:
     read_aligned: str
 
 
-def align_local(read: str, reference: str) -> LocalAlignment | None:
-    """Local Striped Smith-Waterman alignment of `read` onto `reference`
-    (parasail, Farrar 2007)."""
+_COMPLEMENT = str.maketrans("ACGT", "TGCA")
+
+
+def reverse_complement(seq: str) -> str:
+    return seq.translate(_COMPLEMENT)[::-1]
+
+
+def _align_local_one_strand(read: str, reference: str) -> LocalAlignment | None:
     res = parasail.sw_trace_striped_16(read, reference, _SW_GAP_OPEN, _SW_GAP_EXTEND, _SW_MATRIX)
     if res.score <= 0:
         return None
@@ -46,6 +51,32 @@ def align_local(read: str, reference: str) -> LocalAlignment | None:
         ref_aligned=ref_aligned,
         read_aligned=read_aligned,
     )
+
+
+def align_local(read: str, reference: str, try_reverse_complement: bool = True) -> LocalAlignment | None:
+    """Local Striped Smith-Waterman alignment of `read` onto `reference`
+    (parasail, Farrar 2007).
+
+    Raw FASTQ (unlike the pre-oriented SEQ field of a mapped BAM record, or
+    this package's own simulated benchmark reads) mixes reads from both
+    strands. By default this tries both `read` and its reverse complement
+    and keeps whichever scores higher, so a read's orientation does not need
+    to be known or corrected beforehand. The returned alignment's coordinates
+    always describe whichever orientation won; callers that need to know
+    which one that was should reverse-complement `read` themselves and
+    compare, since `LocalAlignment` does not carry a strand flag. Pass
+    `try_reverse_complement=False` to skip the second alignment (e.g. when
+    the caller already knows the read is correctly oriented, or is re-trying
+    an already-oriented sub-fragment during recursive alignment)."""
+    fwd = _align_local_one_strand(read, reference)
+    if not try_reverse_complement:
+        return fwd
+    rev = _align_local_one_strand(reverse_complement(read), reference)
+    if rev is None:
+        return fwd
+    if fwd is None or rev.score > fwd.score:
+        return rev
+    return fwd
 
 
 def placement_base_calls(aln: LocalAlignment) -> dict[int, str]:

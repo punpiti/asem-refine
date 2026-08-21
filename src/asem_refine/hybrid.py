@@ -83,6 +83,18 @@ def assemble_overlap_contigs(
     overlap. No reference is involved -- this only uses read-read overlap,
     which is why it can recover sequence theta can't reach.
 
+    Unlike `align_local`, this does not try each read's reverse complement:
+    two reads from the same locus but opposite strands will not share a
+    suffix-prefix overlap as given, and so will not merge here even though
+    they carry the same information. `anchor_contigs` still recovers each
+    resulting contig's best-scoring orientation against theta (via
+    `align_local`'s default two-strand search), but a gap spanned only by
+    reads split across both strands may assemble into smaller, more
+    fragmented contigs than a same-orientation read pool would. This is an
+    open gap in mixed-orientation input, not a demonstrated failure --
+    none of the paper's benchmarks exercised reads with mixed orientation
+    at a single locus.
+
     Candidate pairs are pruned with a k-mer seed index (share a `seed_k`-mer
     at the suffix/prefix boundary) instead of checked exhaustively, since
     reads from unrelated regions of the genome essentially never share one

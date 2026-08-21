@@ -74,6 +74,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Enable recursive partial alignment for reads clipped by a structural breakpoint (default: on).",
     )
     algo.add_argument("--no-recursive", dest="recursive", action="store_false")
+    algo.add_argument(
+        "--try-reverse-complement", dest="try_reverse_complement", action="store_true", default=True,
+        help="Also try each read's reverse complement and keep whichever orientation aligns better "
+             "(default: on). Needed for raw FASTQ, which mixes both strands; disable only if reads are "
+             "already known to be correctly oriented and the extra alignment attempt is not worth the "
+             "runtime cost.",
+    )
+    algo.add_argument("--no-reverse-complement", dest="try_reverse_complement", action="store_false")
     algo.add_argument("--tau", type=float, default=0.5, help="Read-level alignment acceptance threshold (default: 0.5).")
     algo.add_argument("--w", type=float, default=0.1, help="M-step minimum-confidence weight (default: 0.1).")
     algo.add_argument("--max-iterations", type=int, default=6, help="Maximum EM iterations (default: 6).")
@@ -142,7 +150,9 @@ def main(argv: list[str] | None = None) -> int:
 
     t0 = time.time()
     if args.hybrid:
-        align_read_fn = build_align_read_fn(args.tau, args.recursive, args.min_leftover_len)
+        align_read_fn = build_align_read_fn(
+            args.tau, args.recursive, args.min_leftover_len, args.try_reverse_complement
+        )
         result = run_asem_hybrid_loop(
             theta_init=ref_seq,
             reads=reads,
@@ -165,6 +175,7 @@ def main(argv: list[str] | None = None) -> int:
             n_workers=args.threads,
             recursive=args.recursive,
             min_leftover_len=args.min_leftover_len,
+            try_reverse_complement=args.try_reverse_complement,
         )
     elapsed = time.time() - t0
 
